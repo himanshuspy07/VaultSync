@@ -368,7 +368,17 @@ export const Dashboard: React.FC = () => {
             <div>
               <h1 className="text-lg font-extrabold tracking-tight text-slate-200 flex items-center">
                 VaultSync
-                <span className="ml-2 text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium px-2 py-0.5 rounded-full">v1.0</span>
+                {isOffline ? (
+                  <span className="ml-2 text-[10px] bg-rose-500/15 text-rose-400 border border-rose-500/25 font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
+                    Offline Mode
+                  </span>
+                ) : (
+                  <span className="ml-2 text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    Realtime DB Active
+                  </span>
+                )}
               </h1>
               <p className="text-[10px] text-slate-400">Zero-Knowledge Offline Active</p>
             </div>
