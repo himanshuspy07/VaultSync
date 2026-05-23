@@ -65,6 +65,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const masterKeyRef = useRef<CryptoKey | null>(null);
   const saltRef = useRef<string | null>(null);
   const firebaseUnsubscribeRef = useRef<(() => void) | null>(null);
+  const isSyncingRef = useRef<boolean>(false);
 
   // Monitor network online/offline state
   useEffect(() => {
@@ -176,10 +177,12 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Handle syncing local unsynced records to Cloud Firestore when connection restored
   const syncOfflineRecordToFirestore = useCallback(async (uid: string, key: CryptoKey) => {
     if (!navigator.onLine || isOffline) return;
+    if (isSyncingRef.current) return;
 
     try {
       const localRecord = await localDb.vaults.get(uid);
       if (localRecord && !localRecord.isSynced && localRecord.encryptedData) {
+        isSyncingRef.current = true;
         setIsSyncing(true);
         const docRef = doc(db, "vaults", uid);
         
@@ -205,6 +208,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.error("Synchronization loop failed:", err);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
   }, [isOffline]);
@@ -225,6 +229,9 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const docRef = doc(db, "vaults", uid);
     firebaseUnsubscribeRef.current = onSnapshot(docRef, async (docSnap) => {
       if (!docSnap.exists() || !navigator.onLine) return;
+
+      // Ignore local optimistic events so we don't handle our own intermediate writes
+      if (docSnap.metadata.hasPendingWrites) return;
 
       const data = docSnap.data() as EncryptedVaultDoc;
       if (!data || !data.encryptedData) return;
@@ -477,28 +484,30 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       setHasLocalChanges(true);
 
-      // Synchronize to Firestore database if online
+      // Synchronize to Firestore database in background to avoid blocking critical client UI
       if (navigator.onLine && !isOffline) {
-        try {
-          const docRef = doc(db, "vaults", user.uid);
-          await setDoc(docRef, {
-            userId: user.uid,
-            encryptedData: encryptedBlob,
-            salt: saltRef.current,
-            updatedAt: serverTimestamp()
-          });
+        (async () => {
+          try {
+            const docRef = doc(db, "vaults", user.uid);
+            await setDoc(docRef, {
+              userId: user.uid,
+              encryptedData: encryptedBlob,
+              salt: saltRef.current,
+              updatedAt: serverTimestamp()
+            });
 
-          // Mark local cache as synchronized
-          await localDb.vaults.update(user.uid, { isSynced: true });
-          setHasLocalChanges(false);
-        } catch (fErr: any) {
-          if (isNetworkOrOfflineError(fErr)) {
-            console.warn("Failed to sync updated entries: Client is offline.");
-            setIsOffline(true);
-          } else {
-            handleFirestoreError(fErr, OperationType.WRITE, `vaults/${user.uid}`);
+            // Mark local cache as synchronized
+            await localDb.vaults.update(user.uid, { isSynced: true });
+            setHasLocalChanges(false);
+          } catch (fErr: any) {
+            if (isNetworkOrOfflineError(fErr)) {
+              console.warn("Failed to sync updated entries: Client is offline.");
+              setIsOffline(true);
+            } else {
+              console.error("Background sync to Firestore failed:", fErr);
+            }
           }
-        }
+        })();
       }
     } catch (err) {
       console.error("Error writing updated vault credentials: ", err);

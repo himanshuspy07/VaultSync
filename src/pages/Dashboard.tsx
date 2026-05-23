@@ -165,11 +165,17 @@ export const Dashboard: React.FC = () => {
 
   const confirmDelete = async () => {
     if (entryToDelete) {
-      await deleteEntry(entryToDelete.id);
-      if (selectedEntry?.id === entryToDelete.id) {
+      const targetId = entryToDelete.id;
+      // Close the delete modal optimistically and immediately for responsiveness
+      setEntryToDelete(null);
+      if (selectedEntry?.id === targetId) {
         setSelectedEntry(null);
       }
-      setEntryToDelete(null);
+      try {
+        await deleteEntry(targetId);
+      } catch (err) {
+        console.error("Deletion failed:", err);
+      }
     }
   };
 
@@ -196,20 +202,28 @@ export const Dashboard: React.FC = () => {
       notes
     };
 
-    if (editingEntry) {
-      await updateEntry({
-        ...editingEntry,
-        ...itemPayload
-      });
-      // Update selected detail view if active
-      if (selectedEntry?.id === editingEntry.id) {
-        setSelectedEntry({ ...editingEntry, ...itemPayload });
-      }
-    } else {
-      await addEntry(itemPayload);
-    }
-
+    // Close the create/edit modal optimistically and immediately for responsiveness
     setIsModalOpen(false);
+
+    try {
+      if (editingEntry) {
+        // Update local state and trigger DB write asynchronously
+        updateEntry({
+          ...editingEntry,
+          ...itemPayload
+        }).catch(err => console.error("Update entry failed:", err));
+        
+        // Update selected detail view if active
+        if (selectedEntry?.id === editingEntry.id) {
+          setSelectedEntry({ ...editingEntry, ...itemPayload });
+        }
+      } else {
+        // Add local state and trigger DB write asynchronously
+        addEntry(itemPayload).catch(err => console.error("Add entry failed:", err));
+      }
+    } catch (err) {
+      console.error("Save credentials failed:", err);
+    }
   };
 
   const handleLogout = () => {
