@@ -1,0 +1,6 @@
+{
+  "name": "VaultSync",
+  "description": "A secure, offline-first personal password manager featuring client-side zero-knowledge encryption and seamless cross-device Firebase synchronization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

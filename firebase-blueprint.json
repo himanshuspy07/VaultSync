@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Vault": {
+      "title": "Vault",
+      "description": "Encrypted user credentials vault with pre-user key derivation salt",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID matching the authenticated owner"
+        },
+        "encryptedData": {
+          "type": "string",
+          "description": "Base64 representation of the encrypted vault entries"
+        },
+        "salt": {
+          "type": "string",
+          "description": "Cryptographic base64/hex salt compiled during setup"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp of the vault document"
+        }
+      },
+      "required": [
+        "userId",
+        "encryptedData",
+        "salt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/vaults/{userId}": {
+      "schema": "Vault",
+      "description": "The collection containing individual encrypted vaults mapped to user IDs"
+    }
+  }
+}

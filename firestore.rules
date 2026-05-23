@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Helper to validate the Vault structure to prevent arbitrary field injection
+    function isValidVault(v, userId) {
+      return v.keys().hasAll(['userId', 'encryptedData', 'salt', 'updatedAt']) 
+        && v.keys().size() == 4
+        && v.userId is string 
+        && v.userId.size() <= 128 
+        && v.userId == userId
+        && v.encryptedData is string 
+        && v.encryptedData.size() <= 1500000
+        && v.salt is string 
+        && v.salt.size() <= 256
+        && v.updatedAt is timestamp;
+    }
+
+    // Vaults operations match block
+    match /vaults/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false; // Blanket lists are strictly forbidden
+      
+      allow create: if isOwner(userId) 
+        && isValidId(userId)
+        && isValidVault(incoming(), userId)
+        && incoming().updatedAt == request.time;
+        
+      allow update: if isValidVault(incoming(), userId)
+        && isOwner(userId)
+        && isValidId(userId)
+        && incoming().updatedAt == request.time
+        && incoming().userId == existing().userId
+        && incoming().salt == existing().salt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['encryptedData', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+  }
+}
