@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { ShieldAlert, LogIn, Lock } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
+import vaultSyncIcon from "../assets/images/vaultsync_icon_1779518157491.png";
 
 export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -28,10 +29,16 @@ export const Login: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-4">
-          <div className="relative p-3 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl">
-            <Lock className="w-10 h-10 text-indigo-500" />
-            <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping" />
-            <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+          <div className="relative p-1.5 bg-slate-900 border border-slate-800/80 rounded-2xl shadow-xl">
+            <img
+              src={vaultSyncIcon}
+              alt="VaultSync Logo"
+              className="w-16 h-16 rounded-xl object-cover"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-indigo-500 rounded-full border-2 border-slate-950 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            </div>
           </div>
         </div>
         <h2 className="text-3xl font-bold tracking-tight text-white font-sans">VaultSync</h2>

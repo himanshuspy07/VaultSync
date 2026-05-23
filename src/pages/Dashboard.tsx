@@ -5,6 +5,7 @@ import { auth } from "../lib/firebase";
 import { generatePassword } from "../utils/crypto";
 import { type VaultEntry, type PasswordGeneratorConfig } from "../types";
 import { motion, AnimatePresence } from "motion/react";
+import vaultSyncIcon from "../assets/images/vaultsync_icon_1779518157491.png";
 import {
   Search,
   Plus,
@@ -336,8 +337,13 @@ export const Dashboard: React.FC = () => {
           
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-600/10 border border-indigo-500/20 rounded-xl">
-              <Shield className="w-5 h-5 text-indigo-500" />
+            <div className="p-0.5 bg-slate-900 border border-slate-800 rounded-xl shadow-inner shrink-0">
+              <img
+                src={vaultSyncIcon}
+                alt="VaultSync Logo"
+                className="w-8 h-8 rounded-lg object-cover"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div>
               <h1 className="text-lg font-extrabold tracking-tight text-white flex items-center">
