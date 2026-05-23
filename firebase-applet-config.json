@@ -1,10 +1,10 @@
 {
-  "projectId": "igneous-engine-d07pf",
-  "appId": "1:414801181258:web:c30e57137e0b90aad644b3",
-  "apiKey": "AIzaSyA8tdXQW5cHcIiEtPiDIC_OHcOy1DcOvm0",
-  "authDomain": "igneous-engine-d07pf.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-2def01ef-8c08-448f-84fa-52876cc7546e",
-  "storageBucket": "igneous-engine-d07pf.firebasestorage.app",
-  "messagingSenderId": "414801181258",
+  "projectId": "myvaultsync",
+  "appId": "1:359282229429:web:51991870e5177bb2eabefc",
+  "apiKey": "AIzaSyD15Szs0oAEef36Y_AlA-uQhDWA0xAYP1U",
+  "authDomain": "myvaultsync.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "myvaultsync.firebasestorage.app",
+  "messagingSenderId": "359282229429",
   "measurementId": ""
 }

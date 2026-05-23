@@ -1,47 +1,131 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
+:root {
+  /* Default: Clean GitHub Light Style - Engineered for high contrast */
+  --slate-950: #f4f6f8;
+  --slate-900: #ffffff;
+  --slate-850: #eaeef2;
+  --slate-800: #cbd3db;
+  --slate-700: #586069;
+  --slate-600: #444d56;
+  --slate-500: #2f363d;
+  --slate-400: #24292e;
+  --slate-300: #1b1f23;
+  --slate-200: #030303;
+  --slate-100: #000000;
+
+  /* Primary Accent: Crisp emerald-green instead of Indigo */
+  --indigo-950: rgba(46, 160, 67, 0.08);
+  --indigo-900: rgba(46, 160, 67, 0.12);
+  --indigo-850: rgba(46, 160, 67, 0.16);
+  --indigo-800: #144e20;
+  --indigo-700: #1b6528;
+  --indigo-600: #22863a;
+  --indigo-550: #22863a;
+  --indigo-505: #22863a;
+  --indigo-500: #22863a;
+  --indigo-400: #2ea043;
+  --indigo-300: #3fb950;
+  --indigo-200: #56d364;
+  --indigo-100: #aff5b4;
+  --indigo-50: #e8fbf0;
+
+  /* Danger accents */
+  --rose-500: #b31d28;
+  --rose-450: #cb2431;
+  --rose-400: #d73a49;
+  --rose-600: #86181d;
+
+  /* Blue action links mapping */
+  --blue-500: #0366d6;
+  --blue-400: #005cc5;
+}
+
+:root.dark {
+  /* GitHub modern dark style - Hardened for outstanding dark contrast */
+  --slate-950: #090c10;
+  --slate-900: #13171f;
+  --slate-850: #1d232d;
+  --slate-800: #30363d;
+  --slate-700: #6e7681;
+  --slate-600: #8b949e;
+  --slate-500: #c9d1d9;
+  --slate-400: #e6edf3;
+  --slate-300: #f0f6fc;
+  --slate-200: #f8f9fa;
+  --slate-100: #ffffff;
+
+  /* Primary Accent: Crisp emerald-green (#238636) instead of Indigo */
+  --indigo-950: rgba(56, 139, 60, 0.15);
+  --indigo-900: rgba(56, 139, 60, 0.22);
+  --indigo-850: rgba(56, 139, 60, 0.3);
+  --indigo-800: #1f6e2b;
+  --indigo-700: #238636;
+  --indigo-600: #2ea043;
+  --indigo-550: #3fb950;
+  --indigo-505: #3fb950;
+  --indigo-500: #3fb950;
+  --indigo-400: #4ea85c;
+  --indigo-300: #56d364;
+  --indigo-200: #7ee787;
+  --indigo-100: #aff5b4;
+  --indigo-50: #e8fbf0;
+
+  /* Danger accents */
+  --rose-500: #f85149;
+  --rose-450: #f85149;
+  --rose-400: #ff6b62;
+  --rose-600: #da3633;
+
+  /* Blue action links mapping to #58a6ff */
+  --blue-500: #58a6ff;
+  --blue-400: #79b8ff;
+}
+
 @theme {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* Custom Clean Minimalism colors (GitHub modern dark style) */
-  --color-slate-950: #0d1117;
-  --color-slate-900: #161b22;
-  --color-slate-850: #21262d;
-  --color-slate-800: #30363d;
-  --color-slate-700: #484f58;
-  --color-slate-600: #8b949e;
-  --color-slate-500: #6e7681;
-  --color-slate-400: #8b949e;
-  --color-slate-300: #c9d1d9;
-  --color-slate-200: #e6edf3;
-  --color-slate-100: #f0f6fc;
+  --color-slate-950: var(--slate-950);
+  --color-slate-900: var(--slate-900);
+  --color-slate-850: var(--slate-850);
+  --color-slate-800: var(--slate-800);
+  --color-slate-700: var(--slate-700);
+  --color-slate-600: var(--slate-600);
+  --color-slate-500: var(--slate-500);
+  --color-slate-400: var(--slate-400);
+  --color-slate-300: var(--slate-300);
+  --color-slate-200: var(--slate-200);
+  --color-slate-100: var(--slate-100);
 
   /* Primary Accent: Crisp emerald-green (#238636) instead of Indigo */
-  --color-indigo-950: rgba(35, 134, 54, 0.12);
-  --color-indigo-900: rgba(35, 134, 54, 0.18);
-  --color-indigo-850: rgba(35, 134, 54, 0.25);
-  --color-indigo-800: #1a6528;
-  --color-indigo-700: #217830;
-  --color-indigo-600: #238636;
-  --color-indigo-505: #2c973f;
-  --color-indigo-500: #2ea043;
-  --color-indigo-400: #3fb950;
-  --color-indigo-300: #56d364;
-  --color-indigo-200: #7ee787;
-  --color-indigo-100: #aff5b4;
-  --color-indigo-50: #e8fbf0;
+  --color-indigo-950: var(--indigo-950);
+  --color-indigo-900: var(--indigo-900);
+  --color-indigo-850: var(--indigo-850);
+  --color-indigo-800: var(--indigo-800);
+  --color-indigo-700: var(--indigo-700);
+  --color-indigo-600: var(--indigo-600);
+  --color-indigo-550: var(--indigo-550);
+  --color-indigo-505: var(--indigo-505);
+  --color-indigo-500: var(--indigo-50); /* fallback */
+  --color-indigo-501: var(--indigo-512); /* fallback */
+  --color-indigo-400: var(--indigo-400);
+  --color-indigo-300: var(--indigo-300);
+  --color-indigo-200: var(--indigo-200);
+  --color-indigo-100: var(--indigo-100);
+  --color-indigo-50: var(--indigo-50);
 
   /* Danger accents */
-  --color-rose-500: #f85149;
-  --color-rose-450: #f85149;
-  --color-rose-400: #f85149;
-  --color-rose-600: #da3633;
+  --color-rose-500: var(--rose-500);
+  --color-rose-450: var(--rose-450);
+  --color-rose-400: var(--rose-400);
+  --color-rose-600: var(--rose-600);
 
   /* Blue action links mapping to #58a6ff */
-  --color-blue-500: #58a6ff;
-  --color-blue-400: #58a6ff;
+  --color-blue-500: var(--blue-500);
+  --color-blue-400: var(--blue-400);
 }
 
 /* Custom CSS animations and utility classes */

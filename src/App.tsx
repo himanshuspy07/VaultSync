@@ -14,6 +14,17 @@ import { ShieldAlert, KeyRound } from "lucide-react";
 const AppContent: React.FC = () => {
   const { user, authLoading, unlocked } = useVault();
 
+  // Synchronize theme on mount
+  React.useEffect(() => {
+    const isDark = localStorage.getItem("theme") !== "light";
+    const root = window.document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, []);
+
   // 1. Loading splash screen during initial Firebase Handshake
   if (authLoading) {
     return (

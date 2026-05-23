@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useVault } from "../context/VaultContext";
 import { signOut, updatePassword } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { KeyRound, ShieldCheck, ShieldAlert, LogOut, CheckCircle, HelpCircle, Eye, EyeOff, Globe, Settings } from "lucide-react";
+import { KeyRound, ShieldCheck, ShieldAlert, LogOut, CheckCircle, HelpCircle, Eye, EyeOff, Globe, Settings, Sun, Moon } from "lucide-react";
 
 export const Unlock: React.FC = () => {
   const {
@@ -12,6 +12,22 @@ export const Unlock: React.FC = () => {
     errorMsg: vaultError,
     isOffline
   } = useVault();
+
+  // Theme support
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("theme") !== "light";
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (isDarkMode) {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
 
   // For existing users
   const [password, setPassword] = useState("");
@@ -163,9 +179,20 @@ export const Unlock: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative animate-fadeIn">
+      {/* Theme Toggle Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:bg-slate-850 text-slate-400 hover:text-slate-100 transition-colors shadow-lg"
+          title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDarkMode ? <Sun className="w-4 h-4 text-indigo-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+        </button>
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-6">
-        <h2 className="text-3xl font-extrabold tracking-tight text-white mb-1">VaultSync</h2>
+        <h2 className="text-3xl font-extrabold tracking-tight text-slate-200 mb-1">VaultSync</h2>
         <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
           <span>Zero-Knowledge Secure Tunnel</span>
@@ -184,7 +211,7 @@ export const Unlock: React.FC = () => {
                 <div className="inline-flex p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl mb-3">
                   <KeyRound className="w-6 h-6 text-indigo-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Secure Vault Initialization</h3>
+                <h3 className="text-xl font-bold text-slate-200">Secure Vault Initialization</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
                   Configure your cryptographic master key and global credentials to sync your secrets worldwide.
                 </p>
@@ -362,7 +389,7 @@ export const Unlock: React.FC = () => {
                 <div className="inline-flex p-3 bg-indigo-500/15 border border-indigo-500/35 rounded-2xl mb-3 shadow-inner">
                   <KeyRound className="w-6 h-6 text-indigo-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Unlock Secure Vault</h3>
+                <h3 className="text-xl font-bold text-slate-200">Unlock Secure Vault</h3>
                 <p className="text-xs text-slate-400 mt-1">
                   Active authorization verified. Decode your offline client file locally.
                 </p>
@@ -411,14 +438,15 @@ export const Unlock: React.FC = () => {
                     id="btn-unlock-submit"
                     type="submit"
                     disabled={loading}
-                    className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-55 disabled:cursor-not-allowed"
+                    className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-black bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-55 disabled:cursor-not-allowed"
+                    style={{ color: "#000000" }}
                   >
                     {loading ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4 mr-2" />
-                        Decrypt & Unlock
+                        <ShieldCheck className="w-4 h-4 mr-2" style={{ color: "#000000" }} />
+                        <span style={{ color: "#000000" }}>Decrypt & Unlock</span>
                       </>
                     )}
                   </button>

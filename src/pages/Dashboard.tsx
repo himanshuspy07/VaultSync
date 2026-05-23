@@ -59,6 +59,7 @@ export const Dashboard: React.FC = () => {
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<VaultEntry | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<VaultEntry | null>(null);
 
   // Settings modal states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -156,14 +157,19 @@ export const Dashboard: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Delete handler
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  // Delete handlers
+  const triggerDeleteConfirm = (entry: VaultEntry, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to permanently delete this credential?")) {
-      await deleteEntry(id);
-      if (selectedEntry?.id === id) {
+    setEntryToDelete(entry);
+  };
+
+  const confirmDelete = async () => {
+    if (entryToDelete) {
+      await deleteEntry(entryToDelete.id);
+      if (selectedEntry?.id === entryToDelete.id) {
         setSelectedEntry(null);
       }
+      setEntryToDelete(null);
     }
   };
 
@@ -346,7 +352,7 @@ export const Dashboard: React.FC = () => {
               />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold tracking-tight text-white flex items-center">
+              <h1 className="text-lg font-extrabold tracking-tight text-slate-200 flex items-center">
                 VaultSync
                 <span className="ml-2 text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium px-2 py-0.5 rounded-full">v1.0</span>
               </h1>
@@ -434,8 +440,8 @@ export const Dashboard: React.FC = () => {
             onClick={openCreateModal}
             className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/15 hover:shadow-indigo-500/20 hover:-translate-y-0.5 transition-all"
           >
-            <Plus className="w-4.5 h-4.5" />
-            <span>Add Password</span>
+            <Plus className="w-4.5 h-4.5" style={{ color: "#080808" }} />
+            <span className="text-[#0e0d0d]">Add Password</span>
           </button>
 
           {/* Categories Selector */}
@@ -491,7 +497,7 @@ export const Dashboard: React.FC = () => {
           {/* Data List container */}
           <div className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-4 overflow-hidden shadow-xl min-h-[400px] flex flex-col">
             <div className="flex justify-between items-center pb-3 border-b border-slate-850 mb-4">
-              <h3 className="font-bold text-sm text-white">
+              <h3 className="font-bold text-sm text-slate-200">
                 {activeCategory === "All" ? "All Credentials" : `${activeCategory} Listings`}
               </h3>
               <span className="text-xs text-slate-500">
@@ -546,7 +552,7 @@ export const Dashboard: React.FC = () => {
                           {/* Text info */}
                           <div className="min-w-0">
                             <div className="flex items-center space-x-1.5">
-                              <span className="font-bold text-xs text-white truncate">{entry.name}</span>
+                              <span className="font-bold text-xs text-slate-200 truncate">{entry.name}</span>
                               <span className="text-[9px] bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded-full text-slate-400 font-medium">
                                 {entry.category}
                               </span>
@@ -604,7 +610,7 @@ export const Dashboard: React.FC = () => {
                           </div>
 
                           {/* Action Items */}
-                          <div className="flex items-center pl-2 border-l border-slate-800/80 ml-1.5">
+                          <div className="hidden sm:flex items-center pl-2 border-l border-slate-800/80 ml-1.5">
                             <button
                               id={`btn-edit-item-${entry.id}`}
                               onClick={(e) => openEditModal(entry, e)}
@@ -615,7 +621,7 @@ export const Dashboard: React.FC = () => {
                             </button>
                             <button
                               id={`btn-delete-item-${entry.id}`}
-                              onClick={(e) => handleDelete(entry.id, e)}
+                              onClick={(e) => triggerDeleteConfirm(entry, e)}
                               className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-900 transition-colors"
                               title="Delete record"
                             >
@@ -635,10 +641,18 @@ export const Dashboard: React.FC = () => {
 
         {/* SIDE DETAIL VIEW PANEL */}
         {selectedEntry && (
-          <aside className="w-full md:w-80 shrink-0 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between animate-fadeIn">
+          <>
+            {/* Mobile backdrop to dismiss card on clicking overlay outside */}
+            <div 
+              className="fixed inset-0 bg-slate-950/70 z-30 md:hidden backdrop-blur-xs"
+              onClick={() => setSelectedEntry(null)}
+            />
+            
+            {/* Floating pop-up card on mobile screens, elegant column block on desktop screens */}
+            <aside className="fixed inset-x-4 bottom-4 md:inset-auto z-40 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col justify-between animate-fadeIn md:relative md:z-0 md:w-80 md:shadow-xl shrink-0">
             <div>
               <div className="flex justify-between items-start pb-4 border-b border-slate-850 mb-4">
-                <h3 className="font-bold text-sm text-white">Record Inspector</h3>
+                <h3 className="font-bold text-sm text-slate-200">Record Inspector</h3>
                 <button
                   onClick={() => setSelectedEntry(null)}
                   className="text-xs text-slate-500 hover:text-slate-200"
@@ -653,7 +667,7 @@ export const Dashboard: React.FC = () => {
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center font-bold text-xl border uppercase shadow-xl mb-2.5 ${getAvatarInitialsAndColor(selectedEntry.name).style}`}>
                     {getAvatarInitialsAndColor(selectedEntry.name).character}
                   </div>
-                  <h4 className="font-bold text-base text-white">{selectedEntry.name}</h4>
+                  <h4 className="font-bold text-base text-slate-200">{selectedEntry.name}</h4>
                   <span className="text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-indigo-300 font-semibold mt-1">
                     {selectedEntry.category}
                   </span>
@@ -730,15 +744,15 @@ export const Dashboard: React.FC = () => {
 
             <div className="pt-4 flex space-x-2">
               <button
-                _id={`btn-side-edit-${selectedEntry.id}`}
+                id={`btn-side-edit-${selectedEntry.id}`}
                 onClick={(e) => openEditModal(selectedEntry, e)}
                 className="flex-1 py-2 px-3 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600/20 text-xs font-bold rounded-xl transition-all"
               >
                 Modify Record
               </button>
               <button
-                _id={`btn-side-delete-${selectedEntry.id}`}
-                onClick={(e) => handleDelete(selectedEntry.id, e)}
+                id={`btn-side-delete-${selectedEntry.id}`}
+                onClick={(e) => triggerDeleteConfirm(selectedEntry, e)}
                 className="py-2 px-3 text-rose-400 bg-rose-500/10 border border-rose-500/15 hover:bg-rose-500/20 rounded-xl font-bold text-xs transition-colors"
                 title="Remove permanently"
               >
@@ -746,7 +760,8 @@ export const Dashboard: React.FC = () => {
               </button>
             </div>
           </aside>
-        )}
+        </>
+      )}
       </main>
 
       {/* CREATE & EDIT DIALOG MODAL */}
@@ -1064,6 +1079,74 @@ export const Dashboard: React.FC = () => {
                   <span>Secured locally with Master Password</span>
                   <span className="font-semibold text-slate-400">Sync is active</span>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION DIALOG MODAL */}
+      <AnimatePresence>
+        {entryToDelete && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 animate-fadeIn">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border border-rose-500/30 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden relative"
+            >
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-rose-500" />
+              
+              <div className="p-6">
+                <div className="flex items-center space-x-3 mb-3 text-rose-500">
+                  <div className="p-2 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                    <Trash2 className="w-5 h-5 text-rose-500 animate-pulse" />
+                  </div>
+                  <h3 className="text-base font-extrabold text-white">Confirm Permanent Deletion</h3>
+                </div>
+
+                <div className="space-y-3.5 text-xs">
+                  <div className="bg-slate-950/50 p-4 border border-slate-800 rounded-xl space-y-2">
+                    <p className="text-slate-400">
+                      You are about to permanently delete the credential for:
+                    </p>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="p-1.5 bg-slate-900 border border-slate-805 rounded-lg shrink-0">
+                        <div className="w-5 h-5 text-[10px] flex items-center justify-center font-bold text-slate-300 font-mono uppercase bg-slate-800 border border-slate-700/80 rounded-md">
+                          {entryToDelete.name.trim().charAt(0).toUpperCase() || "?"}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-bold text-white text-xs block truncate leading-tight">{entryToDelete.name}</span>
+                        <span className="text-[10px] text-slate-500 font-mono block truncate mt-0.5">{entryToDelete.username}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-400 leading-relaxed text-[11px] bg-rose-500/5 p-3 rounded-lg border border-rose-500/10">
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-500 inline-block mr-1.5 shrink-0 align-text-bottom" />
+                    <strong>Security Warning:</strong> This operation is performed client-side using Zero-Knowledge encryption. Deleting this entry will wipe all active local cached states and synced cloud storage backups permanently. <strong>This cannot be undone.</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/70 py-4 px-6 border-t border-slate-805 flex justify-end space-x-2.5">
+                <button
+                  id="btn-cancel-delete"
+                  type="button"
+                  onClick={() => setEntryToDelete(null)}
+                  className="px-4 py-2 text-slate-400 hover:text-white font-semibold text-xs border border-transparent hover:border-slate-800 rounded-xl transition-all"
+                >
+                  Cancel, Keep Credential
+                </button>
+                <button
+                  id="btn-confirm-delete"
+                  type="button"
+                  onClick={confirmDelete}
+                  className="px-4.5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow shadow-rose-600/10 transition-colors"
+                >
+                  Permanently Delete
+                </button>
               </div>
             </motion.div>
           </div>

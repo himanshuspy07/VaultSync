@@ -1,14 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Sun, Moon } from "lucide-react";
 import vaultSyncIcon from "../assets/images/vaultsync_icon_1779518157491.png";
 
 export const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("theme") !== "light";
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (isDarkMode) {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
 
   const handleGoogleSignup = async () => {
     setLoading(true);
@@ -26,7 +41,18 @@ export const Signup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative animate-fadeIn">
+      {/* Theme Toggle Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="p-2.5 rounded-xl bg-slate-900 border border-slate-800/80 hover:bg-slate-850 text-slate-400 hover:text-slate-100 transition-colors shadow-lg"
+          title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDarkMode ? <Sun className="w-4 h-4 text-indigo-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+        </button>
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-4">
           <div className="relative p-1.5 bg-slate-900 border border-slate-800/80 rounded-2xl shadow-xl">
@@ -41,7 +67,7 @@ export const Signup: React.FC = () => {
             </div>
           </div>
         </div>
-        <h2 className="text-3xl font-bold tracking-tight text-white font-sans">VaultSync</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-slate-200 font-sans">VaultSync</h2>
         <p className="mt-2 text-sm text-slate-400">
           Create password manager sync coordinator profiles
         </p>
@@ -50,7 +76,7 @@ export const Signup: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
         <div className="bg-slate-900 border border-slate-800 py-8 px-6 shadow-2xl rounded-2xl sm:px-10">
           <div className="mb-6 text-center">
-            <h3 className="text-lg font-medium text-white">Device Registration</h3>
+            <h3 className="text-lg font-medium text-slate-200">Device Registration</h3>
             <p className="text-xs text-slate-400 mt-1">
               Create an account using your Google profile. Safe & instant synchronization setup.
             </p>

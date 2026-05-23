@@ -6,8 +6,10 @@ import firebaseConfig from "../../firebase-applet-config.json";
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with specific database ID if provided
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with specific database ID if provided and not the default one
+export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)"
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const auth = getAuth(app);
 
 // Strict Firestore error wrapping according to security schema rules
@@ -56,4 +58,20 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   };
   console.error("Firestore Error: ", JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
+}
+
+export function isNetworkOrOfflineError(error: any): boolean {
+  if (!error) return false;
+  const message = (error.message || String(error)).toLowerCase();
+  const code = error.code;
+  
+  return (
+    code === "unavailable" ||
+    (code === "failed-precondition" && message.includes("offline")) ||
+    message.includes("offline") ||
+    message.includes("network") ||
+    message.includes("failed to get document") ||
+    message.includes("unreachable") ||
+    message.includes("connection")
+  );
 }

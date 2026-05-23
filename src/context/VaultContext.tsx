@@ -13,7 +13,7 @@ import {
   onSnapshot,
   serverTimestamp
 } from "firebase/firestore";
-import { auth, db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { auth, db, handleFirestoreError, OperationType, isNetworkOrOfflineError } from "../lib/firebase";
 import { localDb } from "../lib/db";
 import { type VaultEntry, type EncryptedVaultDoc, type LocalVaultRecord } from "../types";
 import {
@@ -102,7 +102,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // 2. Fetch from Firestore if online
-      if (navigator.onLine) {
+      if (navigator.onLine && !isOffline) {
         try {
           const docRef = doc(db, "vaults", uid);
           const snap = await getDoc(docRef);
@@ -123,12 +123,17 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               return;
             }
           }
-        } catch (e) {
-          // Wrap with requested error logging but don't crash app initiation
-          try {
-            handleFirestoreError(e, OperationType.GET, `vaults/${uid}`);
-          } catch (wrapped) {
-            console.error("Error checked & handled: ", wrapped);
+        } catch (e: any) {
+          if (isNetworkOrOfflineError(e)) {
+            console.warn("Firestore could not be reached (client is offline). Falling back to local vault storage.");
+            setIsOffline(true);
+          } else {
+            // Wrap with requested error logging but don't crash app initiation
+            try {
+              handleFirestoreError(e, OperationType.GET, `vaults/${uid}`);
+            } catch (wrapped) {
+              console.error("Error checked & handled: ", wrapped);
+            }
           }
         }
       }
@@ -138,7 +143,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.error("Failed to fetch salt setup state: ", err);
     }
-  }, []);
+  }, [isOffline]);
 
   // Monitor Firebase Auth state changes
   useEffect(() => {
@@ -170,7 +175,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Handle syncing local unsynced records to Cloud Firestore when connection restored
   const syncOfflineRecordToFirestore = useCallback(async (uid: string, key: CryptoKey) => {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine || isOffline) return;
 
     try {
       const localRecord = await localDb.vaults.get(uid);
@@ -185,20 +190,24 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             salt: localRecord.salt,
             updatedAt: serverTimestamp()
           });
-        } catch (fError) {
-          handleFirestoreError(fError, OperationType.WRITE, `vaults/${uid}`);
+          // Update IndexedDB to state as synced
+          await localDb.vaults.update(uid, { isSynced: true });
+          setHasLocalChanges(false);
+        } catch (fError: any) {
+          if (isNetworkOrOfflineError(fError)) {
+            console.warn("Sync failed: Client is offline.");
+            setIsOffline(true);
+          } else {
+            handleFirestoreError(fError, OperationType.WRITE, `vaults/${uid}`);
+          }
         }
-
-        // Update IndexedDB to state as synced
-        await localDb.vaults.update(uid, { isSynced: true });
-        setHasLocalChanges(false);
       }
     } catch (err) {
       console.error("Synchronization loop failed:", err);
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [isOffline]);
 
   // Force sync offline triggered by User UI
   const forceSyncOffline = useCallback(async () => {
@@ -206,13 +215,6 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await syncOfflineRecordToFirestore(user.uid, masterKeyRef.current);
     }
   }, [user, syncOfflineRecordToFirestore]);
-
-  // Sync back to database when connection state recovers to online
-  useEffect(() => {
-    if (!isOffline && user && masterKeyRef.current) {
-      syncOfflineRecordToFirestore(user.uid, masterKeyRef.current);
-    }
-  }, [isOffline, user, syncOfflineRecordToFirestore]);
 
   // Build the live Cloud Firestore document listener while unlocked
   const startRealtimeSyncListener = useCallback((uid: string, key: CryptoKey) => {
@@ -257,14 +259,38 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error("Sync decryption failed (likely because of key derivation delay):", err);
       }
     }, (error) => {
-      // Log firestore rules issue
-      try {
-        handleFirestoreError(error, OperationType.GET, `vaults/${uid}`);
-      } catch (wrapped) {
-        console.error("Checked error synced: ", wrapped);
+      if (isNetworkOrOfflineError(error)) {
+        console.warn("Realtime sync listener lost connection: Client is offline.");
+        setIsOffline(true);
+      } else {
+        // Log firestore rules issue
+        try {
+          handleFirestoreError(error, OperationType.GET, `vaults/${uid}`);
+        } catch (wrapped) {
+          console.error("Checked error synced: ", wrapped);
+        }
       }
     });
   }, [syncOfflineRecordToFirestore]);
+
+  // Sync back to database & restart/ensure the realtime listener runs when connection state recovers to online
+  useEffect(() => {
+    if (!isOffline && user && masterKeyRef.current) {
+      const key = masterKeyRef.current;
+      const uid = user.uid;
+      
+      const reconnectAndSync = async () => {
+        try {
+          await syncOfflineRecordToFirestore(uid, key);
+        } catch (err) {
+          console.error("Failed to sync offline record: ", err);
+        }
+        startRealtimeSyncListener(uid, key);
+      };
+      
+      reconnectAndSync();
+    }
+  }, [isOffline, user, syncOfflineRecordToFirestore, startRealtimeSyncListener]);
 
   // First time configuration: setting up the master password
   const setupMasterPassword = useCallback(async (password: string) => {
@@ -292,8 +318,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isSynced: false
       });
 
-      // Write to Cloud Firestore if.online
-      if (navigator.onLine) {
+      // Write to Cloud Firestore if online
+      if (navigator.onLine && !isOffline) {
         const docRef = doc(db, "vaults", user.uid);
         try {
           await setDoc(docRef, {
@@ -304,8 +330,14 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           });
           await localDb.vaults.update(user.uid, { isSynced: true });
           setHasLocalChanges(false);
-        } catch (fErr) {
-          handleFirestoreError(fErr, OperationType.WRITE, `vaults/${user.uid}`);
+        } catch (fErr: any) {
+          if (isNetworkOrOfflineError(fErr)) {
+            console.warn("Failed to push initial setup to Cloud: Client is offline.");
+            setIsOffline(true);
+            setHasLocalChanges(true);
+          } else {
+            handleFirestoreError(fErr, OperationType.WRITE, `vaults/${user.uid}`);
+          }
         }
       } else {
         setHasLocalChanges(true);
@@ -316,7 +348,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setUnlocked(true);
 
       // Initiate listener if.online
-      if (navigator.onLine) {
+      if (navigator.onLine && !isOffline) {
         startRealtimeSyncListener(user.uid, key);
       }
     } catch (err: any) {
@@ -324,7 +356,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setErrorMsg(err.message || "Failed to finalize vault credentials.");
       throw err;
     }
-  }, [user, startRealtimeSyncListener]);
+  }, [user, startRealtimeSyncListener, isOffline]);
 
   // Unlock existing user's vault
   const unlockVault = useCallback(async (password: string): Promise<boolean> => {
@@ -346,11 +378,20 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       let payloadToDecryptStr = cached?.encryptedData || "";
 
       // Fallback: If not indexed, fetch from Firestore online
-      if (!payloadToDecryptStr && navigator.onLine) {
-        const snap = await getDoc(doc(db, "vaults", user.uid));
-        if (snap.exists()) {
-          const docData = snap.data() as EncryptedVaultDoc;
-          payloadToDecryptStr = docData.encryptedData;
+      if (!payloadToDecryptStr && navigator.onLine && !isOffline) {
+        try {
+          const snap = await getDoc(doc(db, "vaults", user.uid));
+          if (snap.exists()) {
+            const docData = snap.data() as EncryptedVaultDoc;
+            payloadToDecryptStr = docData.encryptedData;
+          }
+        } catch (e: any) {
+          if (isNetworkOrOfflineError(e)) {
+            console.warn("Failed to fetch vault because client is offline.");
+            setIsOffline(true);
+          } else {
+            throw e;
+          }
         }
       }
 
@@ -370,7 +411,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setEntries([]);
         setUnlocked(true);
 
-        if (navigator.onLine) {
+        if (navigator.onLine && !isOffline) {
           await syncOfflineRecordToFirestore(user.uid, key);
           startRealtimeSyncListener(user.uid, key);
         }
@@ -389,17 +430,21 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Synchronize in the background
       await syncOfflineRecordToFirestore(user.uid, key);
 
-      if (navigator.onLine) {
+      if (navigator.onLine && !isOffline) {
         startRealtimeSyncListener(user.uid, key);
       }
 
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Faulty master password key validation: ", err);
-      setErrorMsg("Incorrect master password. Please verify credentials.");
+      if (isNetworkOrOfflineError(err)) {
+        setErrorMsg("Failed to connect to security sync network. Please check your internet connection.");
+      } else {
+        setErrorMsg("Incorrect master password. Please verify credentials.");
+      }
       return false;
     }
-  }, [user, checkSalt, syncOfflineRecordToFirestore, startRealtimeSyncListener]);
+  }, [user, checkSalt, syncOfflineRecordToFirestore, startRealtimeSyncListener, isOffline]);
 
   // Lock vault - clears all keys and plain text records from memory
   const lockVault = useCallback(() => {
@@ -433,7 +478,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setHasLocalChanges(true);
 
       // Synchronize to Firestore database if online
-      if (navigator.onLine) {
+      if (navigator.onLine && !isOffline) {
         try {
           const docRef = doc(db, "vaults", user.uid);
           await setDoc(docRef, {
@@ -446,14 +491,19 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           // Mark local cache as synchronized
           await localDb.vaults.update(user.uid, { isSynced: true });
           setHasLocalChanges(false);
-        } catch (fErr) {
-          handleFirestoreError(fErr, OperationType.WRITE, `vaults/${user.uid}`);
+        } catch (fErr: any) {
+          if (isNetworkOrOfflineError(fErr)) {
+            console.warn("Failed to sync updated entries: Client is offline.");
+            setIsOffline(true);
+          } else {
+            handleFirestoreError(fErr, OperationType.WRITE, `vaults/${user.uid}`);
+          }
         }
       }
     } catch (err) {
       console.error("Error writing updated vault credentials: ", err);
     }
-  }, [user]);
+  }, [user, isOffline]);
 
   // CRUD operations
   const addEntry = useCallback(async (entry: Omit<VaultEntry, "id" | "updatedAt">) => {
